@@ -1,84 +1,120 @@
 #!/bin/bash
+set -e
 
-echo ".........----------------#################._.-.-INSTALL-.-._.#################----------------........."
+echo "=== Updating system ==="
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y ca-certificates curl gnupg lsb-release apt-transport-https
+
+echo "=== Setting prompt (optional) ==="
 PS1='\[\e[01;36m\]\u\[\e[01;37m\]@\[\e[01;33m\]\H\[\e[01;37m\]:\[\e[01;32m\]\w\[\e[01;37m\]\$\[\033[0;37m\] '
-echo "PS1='\[\e[01;36m\]\u\[\e[01;37m\]@\[\e[01;33m\]\H\[\e[01;37m\]:\[\e[01;32m\]\w\[\e[01;37m\]\$\[\033[0;37m\] '" >> ~/.bashrc
-sed -i '1s/^/force_color_prompt=yes\n/' ~/.bashrc
+echo "PS1='$PS1'" >> ~/.bashrc
 source ~/.bashrc
 
-apt-get autoremove -y  #removes the packages that are no longer needed
-apt-get update
-systemctl daemon-reload
+# ---------------------------------------------------------
+# 1. Install Docker (official repo)
+# ---------------------------------------------------------
+echo "=== Installing Docker Engine ==="
 
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
-deb http://apt.kubernetes.io/ kubernetes-xenial main
-EOF
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
-KUBE_VERSION=1.20.0
-apt-get update
-apt-get install -y docker.io vim build-essential jq python3-pip kubelet=${KUBE_VERSION}-00 kubectl=${KUBE_VERSION}-00 kubernetes-cni=0.8.7-00 kubeadm=${KUBE_VERSION}-00
-pip3 install jc
+chmod a+r /etc/apt/keyrings/docker.gpg
 
-### UUID of VM 
-### comment below line if this Script is not executed on Cloud based VMs
-jc dmidecode | jq .[1].values.uuid -r
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+  | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-cat > /etc/docker/daemon.json <<EOF
-{
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "storage-driver": "overlay2"
-}
-EOF
-mkdir -p /etc/systemd/system/docker.service.d
+apt-get update -y
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-systemctl daemon-reload
-systemctl restart docker
+# Configure containerd for Kubernetes
+containerd config default | tee /etc/containerd/config.toml
+sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
+systemctl restart containerd
+systemctl enable containerd
 systemctl enable docker
+
+# ---------------------------------------------------------
+# 2. Install Kubernetes (modern repo)
+# ---------------------------------------------------------
+echo "=== Installing Kubernetes 1.29 ==="
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key \
+  | gpg --dearmor -o /etc/apt/keyrings/kubernetes-1-29.gpg
+
+chmod a+r /etc/apt/keyrings/kubernetes-1-29.gpg
+
+echo \
+  "deb [signed-by=/etc/apt/keyrings/kubernetes-1-29.gpg] \
+  https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" \
+  | tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
+
+apt-get update -y
+apt-get install -y kubelet kubeadm kubectl
+apt-mark hold kubelet kubeadm kubectl
+
 systemctl enable kubelet
-systemctl start kubelet
 
-echo ".........----------------#################._.-.-KUBERNETES-.-._.#################----------------........."
-rm /root/.kube/config
+# ---------------------------------------------------------
+# 3. Initialize Kubernetes cluster
+# ---------------------------------------------------------
+echo "=== Initializing Kubernetes cluster ==="
+
+swapoff -a
+sed -i '/ swap / s/^/#/' /etc/fstab
+
 kubeadm reset -f
+kubeadm init --pod-network-cidr=192.168.0.0/16 --skip-token-print
 
-# uncomment below line if your host doesnt have minimum requirement of 2 CPU
-# kubeadm init --kubernetes-version=${KUBE_VERSION} --ignore-preflight-errors=NumCPU --skip-token-print
-kubeadm init --kubernetes-version=${KUBE_VERSION} --skip-token-print
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
 
-mkdir -p ~/.kube
-sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config
+# ---------------------------------------------------------
+# 4. Install Calico CNI
+# ---------------------------------------------------------
+echo "=== Installing Calico CNI ==="
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
 
-kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+echo "Waiting for Calico to become ready..."
+sleep 45
 
-sleep 60
+# Remove master taint so node can schedule pods
+kubectl taint nodes --all node-role.kubernetes.io/control-plane- || true
 
-echo "untaint controlplane node"
-kubectl taint node $(kubectl get nodes -o=jsonpath='{.items[].metadata.name}') node.kubernetes.io/not-ready:NoSchedule-
-kubectl taint node $(kubectl get nodes -o=jsonpath='{.items[].metadata.name}') node-role.kubernetes.io/master:NoSchedule-
-kubectl get node -o wide
+# ---------------------------------------------------------
+# 5. Install Java + Maven
+# ---------------------------------------------------------
+echo "=== Installing Java 17 and Maven ==="
+apt-get install -y openjdk-17-jdk maven
 
+# ---------------------------------------------------------
+# 6. Install Jenkins (modern repo)
+# ---------------------------------------------------------
+echo "=== Installing Jenkins ==="
 
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key \
+  | gpg --dearmor -o /usr/share/keyrings/jenkins-keyring.gpg
 
-echo ".........----------------#################._.-.-Java and MAVEN-.-._.#################----------------........."
-sudo apt install openjdk-11-jdk -y
-java -version
-sudo apt install -y maven
-mvn -v
+echo \
+  "deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] \
+  https://pkg.jenkins.io/debian-stable binary/" \
+  | tee /etc/apt/sources.list.d/jenkins.list > /dev/null
 
+apt-get update -y
+apt-get install -y jenkins
 
-
-echo ".........----------------#################._.-.-JENKINS-.-._.#################----------------........."
-wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
-sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
-sudo apt update
-sudo apt install -y jenkins
-systemctl daemon-reload
 systemctl enable jenkins
-sudo systemctl start jenkins
-#sudo systemctl status jenkins
-sudo usermod -a -G docker jenkins
-echo "jenkins ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+systemctl start jenkins
 
-echo ".........----------------#################._.-.-COMPLETED-.-._.#################----------------........."
+# Allow Jenkins to use Docker
+usermod -aG docker jenkins
+
+echo "=== Installation Complete ==="
+echo "Jenkins is running on port 8080"
+echo "Kubernetes cluster is ready"
+echo "Docker is installed and configured"
