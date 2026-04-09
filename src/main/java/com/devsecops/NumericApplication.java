@@ -1,43 +1,12 @@
 package com.devsecops;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+@SpringBootApplication
+public class NumericApplication {
 
-@SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)   // Disable Spring Security filters for tests
-class NumericApplicationTests {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Test
-    void smallerThanOrEqualToFiftyMessage() throws Exception {
-        this.mockMvc.perform(get("/compare/49"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(content().string("Smaller than or equal to 50"));
-    }
-
-    @Test
-    void greaterThanFiftyMessage() throws Exception {
-        this.mockMvc.perform(get("/compare/51"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(content().string("Greater than 50"));
-    }
-
-    @Test
-    void welcomeMessage() throws Exception {
-        this.mockMvc.perform(get("/"))
-                .andDo(print())
-                .andExpect(status().isOk());
+    public static void main(String[] args) {
+        SpringApplication.run(NumericApplication.class, args);
     }
 }
