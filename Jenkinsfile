@@ -22,7 +22,7 @@ node {
 
     stage('Docker Build and Push') {
         sh 'printenv'
-        sh "docker build -t ochelini/numericapp:${GIT_COMMIT} ."
-        sh "docker push ochelini/numericapp:${GIT_COMMIT}"
+        sh "docker build -t ochelini/numericapp:${env.GIT_COMMIT} ."
+        sh "docker push ochelini/numericapp:${env.GIT_COMMIT}"
     }
 }
