@@ -20,3 +20,11 @@ node {
         ])
     }
 }
+stage ('Docker Build and Push')  {
+    steps {
+         sh 'printev'
+         sh 'docker build -t ochelini/numericapp:""$GIT_COMMIT"" .'
+         sh 'docker push ochelini/numericapp:""$GIT_COMMIT"" .'
+               ])
+    }
+}
