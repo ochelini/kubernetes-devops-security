@@ -20,9 +20,12 @@ node {
         ])
     }
 
+    stage('Build JAR') {
+        sh 'mvn clean package -DskipTests'
+    }
+
     stage('Docker Build and Push') {
 
-        // Always works — extract commit hash manually
         def commit = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
 
         sh 'printenv'
