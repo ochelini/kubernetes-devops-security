@@ -18,3 +18,5 @@ pipeline {
              Jacoco exePattern: 'target/jacoco.exec'
            }
          }
+         }
+     }
