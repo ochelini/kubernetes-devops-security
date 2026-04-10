@@ -26,9 +26,17 @@ node {
 
     stage('Docker Build and Push') {
 
+        // Always works — extract commit hash manually
         def commit = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
 
         sh 'printenv'
+
+        // Login to Docker Hub using Jenkins credentials
+        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+        }
+
+        // Build and push image
         sh "docker build -t ochelini/numericapp:${commit} ."
         sh "docker push ochelini/numericapp:${commit}"
     }
