@@ -21,8 +21,12 @@ node {
     }
 
     stage('Docker Build and Push') {
+
+        // Always works — extract commit hash manually
+        def commit = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
+
         sh 'printenv'
-        sh "docker build -t ochelini/numericapp:${env.GIT_COMMIT} ."
-        sh "docker push ochelini/numericapp:${env.GIT_COMMIT}"
+        sh "docker build -t ochelini/numericapp:${commit} ."
+        sh "docker push ochelini/numericapp:${commit}"
     }
 }
