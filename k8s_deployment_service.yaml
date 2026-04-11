@@ -1,35 +1,43 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: devsecops
   labels:
     app: devsecops
-  name: devsecops
 spec:
   replicas: 2
   selector:
     matchLabels:
       app: devsecops
-  strategy: {}
   template:
     metadata:
       labels:
         app: devsecops
     spec:
       containers:
-      - image: replace
-        name: devsecops-container
----
+      - name: devsecops-container
+        image: dockerhubuser/devsecops-numeric:REPLACE_ME
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+
+
 apiVersion: v1
 kind: Service
 metadata:
+  name: devsecops-svc
   labels:
     app: devsecops
-  name: devsecops-svc
 spec:
-  ports:
-  - port: 8080
-    protocol: TCP
-    targetPort: 8080
   selector:
     app: devsecops
+  ports:
+  - port: 8080
+    targetPort: 8080
   type: NodePort
