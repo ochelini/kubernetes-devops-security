@@ -41,3 +41,13 @@ node {
         sh "docker push ochelini/numericapp:${commit}"
     }
 }
+  stage('Kubernetes Deployment - DEV') {
+        steps { 
+            withKubeConfig(credentialsId: "kubeconfig", url: ""]) {
+                sh "sed -i 's#replace#ochelini/numeric-app:${GIT_COMMIT}#g' K8s_deployment_service.yaml
+                sh "kubectl apply -f K8s_deployment_service.yaml"
+    }
+
+    
+    }
+}
