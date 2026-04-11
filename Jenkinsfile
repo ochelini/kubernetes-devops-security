@@ -23,27 +23,33 @@ node {
     }
 
     stage('Docker Build and Push') {
-        def commit = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
+        def commit = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
 
         withCredentials([usernamePassword(
             credentialsId: 'dockerhub',
             usernameVariable: 'DOCKER_USER',
             passwordVariable: 'DOCKER_PASS'
         )]) {
-            sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+            sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
         }
 
         sh "docker build -t ochelini/numericapp:${commit} ."
         sh "docker push ochelini/numericapp:${commit}"
+
+        // Save commit for later stage
+        env.IMAGE_TAG = commit
     }
 
     stage('Kubernetes Deployment - DEV') {
-    withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
-        sh '''
-            mkdir -p ~/.kube
-            echo "$KUBECONFIG_CONTENT" > ~/.kube/config
-            chmod 600 ~/.kube/config
-            kubectl apply -f K8s_deployment_service.yaml
-        '''
+        withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
+            sh '''
+                mkdir -p ~/.kube
+                echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+                chmod 600 ~/.kube/config
+                sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" K8s_deployment_service.yaml
+                kubectl apply -f K8s_deployment_service.yaml
+            '''
+        }
     }
+
 }
