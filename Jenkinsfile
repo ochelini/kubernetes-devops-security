@@ -41,15 +41,16 @@ node {
     }
 
     stage('Kubernetes Deployment - DEV') {
-        withCredentials([string(credentialsId: 'kubeconfig-dev', variable: 'KUBECONFIG_CONTENT')]) {
-            sh '''
-                mkdir -p ~/.kube
-                echo "$KUBECONFIG_CONTENT" > ~/.kube/config
-                chmod 600 ~/.kube/config
-                sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" K8s_deployment_service.yaml
-                kubectl apply -f K8s_deployment_service.yaml
-            '''
-        }
-    }
+    withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
+        sh '''
+            mkdir -p ~/.kube
+            echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+            chmod 600 ~/.kube/config
 
+            ls -l k8s
+
+            sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s/K8s_deployment_service.yaml
+            kubectl apply -f k8s/K8s_deployment_service.yaml
+        '''
+    }
 }
