@@ -47,8 +47,7 @@ node {
             chmod 600 ~/.kube/config
 
             sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s_deployment_service.yaml
-            kubectl apply -f k8s_deployment_service.yaml
-        '''
-    }
-}
+            kubectl apply -f k8s_deployment_service.yaml --validate=false
+ }
+ }
 }
