@@ -40,7 +40,7 @@ node {
     }
 
     stage('Kubernetes Deployment - DEV') {
-        withCredentials([string(credentialsId: 'kubeconfig-dev', variable: 'KUBECONFIG_CONTENT')]) {
+        withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
             sh '''
                 mkdir -p ~/.kube
                 echo "$KUBECONFIG_CONTENT" > ~/.kube/config
