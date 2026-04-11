@@ -36,21 +36,25 @@ node {
         sh "docker build -t ochelini/numericapp:${commit} ."
         sh "docker push ochelini/numericapp:${commit}"
 
-        // Save commit for later stage
+        // Persist image tag for later stages
         env.IMAGE_TAG = commit
     }
 
     stage('Kubernetes Deployment - DEV') {
-    withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
-        sh '''
-            mkdir -p ~/.kube
-            echo "$KUBECONFIG_CONTENT" > ~/.kube/config
-            chmod 600 ~/.kube/config
+        withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
+            sh '''
+                mkdir -p ~/.kube
+                echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+                chmod 600 ~/.kube/config
 
-            ls -l k8s
+                # Show manifest location (debug-safe)
+                ls -l
 
-            sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s/K8s_deployment_service.yaml
-            kubectl apply -f k8s/K8s_deployment_service.yaml
-        '''
+                # Replace image tag and deploy
+                sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s/K8s_deployment_service.yaml
+                kubectl apply -f k8s/K8s_deployment_service.yaml
+            '''
+        }
     }
+
 }
