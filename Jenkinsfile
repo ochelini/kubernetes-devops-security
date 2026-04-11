@@ -41,20 +41,14 @@ node {
     }
 
     stage('Kubernetes Deployment - DEV') {
-        withCredentials([string(credentialsId: 'kubeconfig-dev', variable: 'KUBECONFIG_CONTENT')]) {
-            sh '''
-                mkdir -p ~/.kube
-                echo "$KUBECONFIG_CONTENT" > ~/.kube/config
-                chmod 600 ~/.kube/config
+    withCredentials([string(credentialsId: 'kubeconfig-dev', variable: 'KUBECONFIG_CONTENT')]) {
+        sh '''
+            mkdir -p ~/.kube
+            echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+            chmod 600 ~/.kube/config
 
-                # Show manifest location (debug-safe)
-                ls -l
-
-                # Replace image tag and deploy
-                sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s/K8s_deployment_service.yaml
-                kubectl apply -f k8s/K8s_deployment_service.yaml
-            '''
-        }
+            sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s_deployment_service.yaml
+            kubectl apply -f k8s_deployment_service.yaml
+        '''
     }
-
 }
