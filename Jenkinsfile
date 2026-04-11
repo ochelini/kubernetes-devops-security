@@ -38,9 +38,12 @@ node {
     }
 
     stage('Kubernetes Deployment - DEV') {
-        withKubeConfig(credentialsId: 'kubeconfig') {
-            sh "sed -i 's#replace#ochelini/numericapp:${commit}#g' K8s_deployment_service.yaml"
-            sh 'kubectl apply -f K8s_deployment_service.yaml'
-        }
+    withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_CONTENT')]) {
+        sh '''
+            mkdir -p ~/.kube
+            echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+            chmod 600 ~/.kube/config
+            kubectl apply -f K8s_deployment_service.yaml
+        '''
     }
 }
