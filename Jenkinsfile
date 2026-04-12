@@ -26,6 +26,18 @@ node {
             sourcePattern: 'src/main/java'
         ])
     }
+    /*************************
+    Mutation Tests - PIT
+    *************************
+    stage(Mutation Tests - PIT) {
+        sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+    }
+    post  {
+    always  {
+       pitmutation mutationStatsfile: '**/target/pit-reports/**/mutations.xml'
+      }
+  }
+  }
 
     /*************************
      * Build JAR
@@ -33,7 +45,6 @@ node {
     stage('Build JAR') {
         sh 'mvn clean package -DskipTests'
     }
-
     /*************************
      * Docker Build & Push
      *************************/
