@@ -36,9 +36,13 @@ node {
             sh 'mvn org.pitest:pitest-maven:mutationCoverage'
         }
 
-        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml',
-                    allowEmptyResults: true,
-                    failOnError: false
+       stage('Mutation Tests - PIT') {
+
+    catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+        sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+    }
+}
     }
 
     /*************************
