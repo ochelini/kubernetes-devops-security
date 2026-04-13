@@ -26,17 +26,16 @@ node {
             sourcePattern: 'src/main/java'
         ])
     }
-    /*************************
-    Mutation Tests - PIT
-    *************************
-    stage(Mutation Tests - PIT) {
+   /*************************
+ * Mutation Tests - PIT
+ *************************/
+stage('Mutation Tests - PIT') {
+    try {
         sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+    } finally {
+        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
     }
-    post  {
-    always  {
-       pitmutation mutationStatsfile: '**/target/pit-reports/**/mutations.xml'
-      }
-  }
+}
   }
 
     /*************************
