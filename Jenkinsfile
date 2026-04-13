@@ -98,6 +98,6 @@ stage('Mutation Tests - PIT') {
                 kubectl apply -f k8s_deployment_service.yaml --validate=false
             '''
         }
-    }
+    
 
 }
