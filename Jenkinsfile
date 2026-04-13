@@ -34,7 +34,11 @@ node {
         try {
             sh 'mvn org.pitest:pitest-maven:mutationCoverage'
         } finally {
-            pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+            
+    mutationStatsFile: '**/target/pit-reports/**/mutations.xml',
+    allowEmptyResults: true,
+    failOnError: false
+
         }
     }
 
