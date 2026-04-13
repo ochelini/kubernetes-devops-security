@@ -26,17 +26,17 @@ node {
             sourcePattern: 'src/main/java'
         ])
     }
-   /*************************
- * Mutation Tests - PIT
- *************************/
-stage('Mutation Tests - PIT') {
-    try {
-        sh 'mvn org.pitest:pitest-maven:mutationCoverage'
-    } finally {
-        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+
+    /*************************
+     * Mutation Tests - PIT
+     *************************/
+    stage('Mutation Tests - PIT') {
+        try {
+            sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+        } finally {
+            pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+        }
     }
-}
-  }
 
     /*************************
      * Build JAR
@@ -44,12 +44,12 @@ stage('Mutation Tests - PIT') {
     stage('Build JAR') {
         sh 'mvn clean package -DskipTests'
     }
+
     /*************************
      * Docker Build & Push
      *************************/
     stage('Docker Build and Push') {
 
-        // Use git commit hash as image tag
         def imageTag = sh(
             script: 'git rev-parse HEAD',
             returnStdout: true
@@ -66,7 +66,6 @@ stage('Mutation Tests - PIT') {
         sh "docker build -t ochelini/numericapp:${imageTag} ."
         sh "docker push ochelini/numericapp:${imageTag}"
 
-        // Persist for next stage
         env.IMAGE_TAG = imageTag
     }
 
@@ -98,6 +97,7 @@ stage('Mutation Tests - PIT') {
                 kubectl apply -f k8s_deployment_service.yaml --validate=false
             '''
         }
-    
+    }
 
-}
+} // ✅ ONE single node closing brace
+``
