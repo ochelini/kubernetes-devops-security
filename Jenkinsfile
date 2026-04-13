@@ -16,30 +16,29 @@ node {
     }
 
     /*************************
-     * Code Coverage
+     * Code Coverage (JaCoCo)
      *************************/
     stage('Code Coverage') {
-        step([
-            $class: 'JacocoPublisher',
+        jacoco(
             execPattern: 'target/jacoco.exec',
             classPattern: 'target/classes',
             sourcePattern: 'src/main/java'
-        ])
+        )
     }
 
     /*************************
-     * Mutation Tests - PIT
+     * Mutation Tests (PIT)
+     * Non-blocking by design
      *************************/
     stage('Mutation Tests - PIT') {
-        try {
-            sh 'mvn org.pitest:pitest-maven:mutationCoverage'
-        } finally {
-            
-    mutationStatsFile: '**/target/pit-reports/**/mutations.xml',
-    allowEmptyResults: true,
-    failOnError: false
 
+        catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+            sh 'mvn org.pitest:pitest-maven:mutationCoverage'
         }
+
+        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml',
+                    allowEmptyResults: true,
+                    failOnError: false
     }
 
     /*************************
@@ -103,5 +102,4 @@ node {
         }
     }
 
-} // ✅ ONE single node closing brace
-
+} // ✅ end node
