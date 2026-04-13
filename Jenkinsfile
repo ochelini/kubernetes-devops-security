@@ -28,13 +28,15 @@ node {
 
     /*************************
      * Mutation Tests (PIT)
-     * Non-blocking by design
+     * Maven only – no Jenkins plugin
      *************************/
     stage('Mutation Tests - PIT') {
         catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
             sh 'mvn org.pitest:pitest-maven:mutationCoverage'
-            pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
         }
+
+        // Optional: archive reports for viewing
+        archiveArtifacts artifacts: 'target/pit-reports/**', allowEmptyArchive: true
     }
 
     /*************************
