@@ -16,7 +16,7 @@ node {
     }
 
     /*************************
-     * Code Coverage (JaCoCo)
+     * Code Coverage
      *************************/
     stage('Code Coverage') {
         jacoco(
@@ -27,21 +27,15 @@ node {
     }
 
     /*************************
-     * Mutation Tests (PIT)
-     * Non-blocking by design
+     * Mutation Tests - PIT
+     * Non-blocking
      *************************/
     stage('Mutation Tests - PIT') {
-
         catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
             sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+            pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
         }
-
-     stage('Mutation Tests - PIT') {
-    catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
-        sh 'mvn org.pitest:pitest-maven:mutationCoverage'
-        pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
     }
-}
 
     /*************************
      * Build JAR
@@ -104,4 +98,4 @@ node {
         }
     }
 
-} // ✅ end node
+} // ✅ FINAL closing brace for node
