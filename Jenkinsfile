@@ -16,7 +16,7 @@ node {
     }
 
     /*************************
-     * Code Coverage
+     * Code Coverage (JaCoCo)
      *************************/
     stage('Code Coverage') {
         jacoco(
@@ -27,8 +27,8 @@ node {
     }
 
     /*************************
-     * Mutation Tests - PIT
-     * Non-blocking
+     * Mutation Tests (PIT)
+     * Non-blocking by design
      *************************/
     stage('Mutation Tests - PIT') {
         catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
@@ -98,4 +98,4 @@ node {
         }
     }
 
-} // ✅ FINAL closing brace for node
+} // ✅ end node
