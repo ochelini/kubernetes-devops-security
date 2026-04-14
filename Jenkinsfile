@@ -90,9 +90,9 @@ node {
             set -e
 
             echo "Setting kubeconfig"
-            mkdir -p ~/.kube
-            cp "$KUBECONFIG_FILE" ~/.kube/config
-            chmod 600 ~/.kube/config
+            mkdir -p "$HOME/.kube"
+            cp "$KUBECONFIG_FILE" "$HOME/.kube/config"
+            chmod 600 "$HOME/.kube/config"
 
             echo "Verifying cluster endpoint"
             kubectl config view --minify | grep server
