@@ -81,31 +81,30 @@ node {
     /*************************
      * Kubernetes Deployment (DEV)
      *************************/
-    stage('Kubernetes Deployment - DEV') {
+   stage('Kubernetes Deployment - DEV') {
+    withCredentials([file(
+        credentialsId: 'kubeconfig',
+        variable: 'KUBECONFIG_FILE'
+    )]) {
+        sh '''
+            set -e
 
-        withCredentials([file(
-            credentialsId: 'kubeconfig',
-            variable: 'KUBECONFIG_FILE'
-        )]) {
+            echo "Setting kubeconfig"
+            mkdir -p ~/.kube
+            cp "$KUBECONFIG_FILE" ~/.kube/config
+            chmod 600 ~/.kube/config
 
-            sh '''
-                set -e
+            echo "Verifying cluster endpoint"
+            kubectl config view --minify | grep server
 
-                echo "Setting kubeconfig"
-                mkdir -p ~/.kube
-                cp "$KUBECONFIG_FILE" ~/.kube/config
-                chmod 600 ~/.kube/config
+            echo "Updating image tag in manifest"
+            sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s_deployment_service.yaml
 
-                echo "Verifying cluster endpoint"
-                kubectl config view --minify | grep server
-
-                echo "Updating image tag in manifest"
-                sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s_deployment_service.yaml
-
-                echo "Applying Kubernetes resources"
-                kubectl apply -f k8s_deployment_service.yaml --validate=false
-            '''
-        }
+            echo "Applying Kubernetes resources"
+            kubectl apply -f k8s_deployment_service.yaml --validate=false
+        '''
     }
+}
+
 
 } // ✅ end node
