@@ -38,7 +38,15 @@ node {
         // Optional: archive reports for viewing
         archiveArtifacts artifacts: 'target/pit-reports/**', allowEmptyArchive: true
     }
+     stage('SonarQube- SAST') {
+      sh '''
+         mvn sonar:sonar \
+  -Dsonar.projectKey=NumericaApp \
+  -Dsonar.host.url=http://devsecopsdemo.westus2.cloudapp.azure.com:9000 \
+  -Dsonar.login=3f73ccd772959bc74307802402300f4cd46f56cc
 
+ }
+         
     /*************************
      * Build JAR
      *************************/
