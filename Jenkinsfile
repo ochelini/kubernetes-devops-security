@@ -1,6 +1,8 @@
-
 node {
 
+    /*************************
+     * Force Java 17 (Snap Jenkins fix)
+     *************************/
     env.JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
     env.PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
 
@@ -11,19 +13,23 @@ node {
             java -version
             which javac
             javac -version
-        
+        '''
     }
 
+    /*************************
+     * Checkout Source
+     *************************/
     stage('Checkout') {
         checkout scm
     }
 
+    /*************************
+     * Unit Tests
+     *************************/
     stage('Unit Tests') {
         sh 'mvn clean test'
+        junit 'target/surefire-reports/*.xml'
     }
-
-    
-}
 
     /*************************
      * Code Coverage (JaCoCo)
@@ -38,7 +44,6 @@ node {
 
     /*************************
      * Mutation Tests (PIT)
-     * Maven only – no Jenkins plugin
      *************************/
     stage('Mutation Tests - PIT') {
         catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
@@ -56,7 +61,7 @@ node {
               -Dsonar.projectKey=NumericApp \
               -Dsonar.host.url=http://devsecopsdemo.westus2.cloudapp.azure.com:9000 \
               -Dsonar.login=3f73ccd772959bc74307802402300f4cd46f56cc
-        
+        '''
     }
 
     /*************************
@@ -72,7 +77,7 @@ node {
     stage('Docker Build and Push') {
 
         def imageTag = sh(
-            script: 'git rev-parse HEAD',
+            script: 'git rev-parse --short HEAD',
             returnStdout: true
         ).trim()
 
@@ -106,13 +111,13 @@ node {
                 cp "$KUBECONFIG_FILE" "$HOME/.kube/config"
                 chmod 600 "$HOME/.kube/config"
 
-                echo "Verifying cluster endpoint"
+                echo "Cluster endpoint:"
                 kubectl config view --minify | grep server
 
                 echo "Updating image tag in manifest"
                 sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s_deployment_service.yaml
 
-                echo "Applying Kubernetes resources"
+                echo "Deploying to Kubernetes"
                 kubectl apply -f k8s_deployment_service.yaml --validate=false
             '''
         }
