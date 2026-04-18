@@ -1,22 +1,29 @@
 
-node { "/usr/lib/jvm/java-17-openjdk-amd64"
+node {
+
+    env.JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
     env.PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
 
+    stage('Verify Java') {
+        sh '''
+            echo "JAVA_HOME=$JAVA_HOME"
+            which java
+            java -version
+            which javac
+            javac -version
+        '''
+    }
 
-    /*************************
-     * Checkout Source
-     *************************/
     stage('Checkout') {
         checkout scm
     }
 
-    /*************************
-     * Unit Tests
-     *************************/
     stage('Unit Tests') {
         sh 'mvn clean test'
-        junit 'target/surefire-reports/*.xml'
     }
+
+    ...
+}
 
     /*************************
      * Code Coverage (JaCoCo)
