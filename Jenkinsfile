@@ -1,4 +1,7 @@
-node {
+
+node { "/usr/lib/jvm/java-17-openjdk-amd64"
+    env.PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+
 
     /*************************
      * Checkout Source
