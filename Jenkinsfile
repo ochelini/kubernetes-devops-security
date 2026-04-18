@@ -34,19 +34,21 @@ node {
         catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
             sh 'mvn org.pitest:pitest-maven:mutationCoverage'
         }
-
-        // Optional: archive reports for viewing
         archiveArtifacts artifacts: 'target/pit-reports/**', allowEmptyArchive: true
     }
-     stage('SonarQube- SAST') {
-      sh '''
-         mvn sonar:sonar \
-  -Dsonar.projectKey=NumericaApp \
-  -Dsonar.host.url=http://devsecopsdemo.westus2.cloudapp.azure.com:9000 \
-  -Dsonar.login=3f73ccd772959bc74307802402300f4cd46f56cc
 
- }
-         
+    /*************************
+     * SonarQube – SAST
+     *************************/
+    stage('SonarQube - SAST') {
+        sh '''
+            mvn sonar:sonar \
+              -Dsonar.projectKey=NumericApp \
+              -Dsonar.host.url=http://devsecopsdemo.westus2.cloudapp.azure.com:9000 \
+              -Dsonar.login=3f73ccd772959bc74307802402300f4cd46f56cc
+        '''
+    }
+
     /*************************
      * Build JAR
      *************************/
@@ -69,7 +71,7 @@ node {
             usernameVariable: 'DOCKER_USER',
             passwordVariable: 'DOCKER_PASS'
         )]) {
-            sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+            sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
         }
 
         sh "docker build -t ochelini/numericapp:${imageTag} ."
@@ -81,30 +83,29 @@ node {
     /*************************
      * Kubernetes Deployment (DEV)
      *************************/
-   stage('Kubernetes Deployment - DEV') {
-    withCredentials([file(
-        credentialsId: 'kubeconfig',
-        variable: 'KUBECONFIG_FILE'
-    )]) {
-        sh '''
-            set -e
+    stage('Kubernetes Deployment - DEV') {
+        withCredentials([file(
+            credentialsId: 'kubeconfig',
+            variable: 'KUBECONFIG_FILE'
+        )]) {
+            sh '''
+                set -e
 
-            echo "Setting kubeconfig"
-            mkdir -p "$HOME/.kube"
-            cp "$KUBECONFIG_FILE" "$HOME/.kube/config"
-            chmod 600 "$HOME/.kube/config"
+                echo "Setting kubeconfig"
+                mkdir -p "$HOME/.kube"
+                cp "$KUBECONFIG_FILE" "$HOME/.kube/config"
+                chmod 600 "$HOME/.kube/config"
 
-            echo "Verifying cluster endpoint"
-            kubectl config view --minify | grep server
+                echo "Verifying cluster endpoint"
+                kubectl config view --minify | grep server
 
-            echo "Updating image tag in manifest"
-            sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s_deployment_service.yaml
+                echo "Updating image tag in manifest"
+                sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s_deployment_service.yaml
 
-            echo "Applying Kubernetes resources"
-            kubectl apply -f k8s_deployment_service.yaml --validate=false
-        '''
+                echo "Applying Kubernetes resources"
+                kubectl apply -f k8s_deployment_service.yaml --validate=false
+            '''
+        }
     }
-}
-
 
 } // ✅ end node
