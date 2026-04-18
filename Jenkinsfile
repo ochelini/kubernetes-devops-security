@@ -42,18 +42,16 @@ node {
         archiveArtifacts artifacts: 'target/pit-reports/**', allowEmptyArchive: true
     }
 
-    /*************************
-     * SonarQube – SAST
-     *************************/
-    stage('SonarQube - SAST') {
+   stage('SonarQube - SAST') {
+    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
         sh '''
             mvn sonar:sonar \
               -Dsonar.projectKey=NumericApp \
-              -Dsonar.host.url=http://devsecopsdemo.westus2.cloudapp.azure.com:9000 \
-              -Dsonar.login=3f73ccd772959bc74307802402300f4cd46f56cc
+              -Dsonar.host.url=http://localhost:9000 \
+              -Dsonar.login=$SONAR_TOKEN
         '''
     }
-
+}
     /*************************
      * Build JAR
      *************************/
