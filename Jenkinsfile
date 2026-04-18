@@ -11,7 +11,7 @@ node {
             java -version
             which javac
             javac -version
-        '''
+        
     }
 
     stage('Checkout') {
@@ -22,7 +22,7 @@ node {
         sh 'mvn clean test'
     }
 
-    ...
+    
 }
 
     /*************************
