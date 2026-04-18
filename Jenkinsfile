@@ -29,17 +29,7 @@ node {
     stage('Unit Tests') {
         sh 'mvn clean test'
         junit 'target/surefire-reports/*.xml'
-    }
-
-    /*************************
-     * Code Coverage (JaCoCo)
-     *************************/
-    stage('Code Coverage') {
-        jacoco(
-            execPattern: 'target/jacoco.exec',
-            classPattern: 'target/classes',
-            sourcePattern: 'src/main/java'
-        )
+   
     }
 
     /*************************
