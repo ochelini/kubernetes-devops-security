@@ -102,7 +102,7 @@ pipeline {
                         chmod 600 ~/.kube/config
 
                         echo "Deploying to Kubernetes"
-                        kubectl apply -f k8s/
+                        kubectl apply -f k8s_deployment_service.yaml
                     '''
                 }
             }
