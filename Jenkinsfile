@@ -12,9 +12,9 @@ pipeline {
         stage('Verify Java') {
             steps {
                 sh '''
-                  echo "JAVA_HOME=$JAVA_HOME"
-                  java -version
-                  javac -version
+                    echo "JAVA_HOME=$JAVA_HOME"
+                    java -version
+                    javac -version
                 '''
             }
         }
@@ -53,10 +53,10 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                      mvn sonar:sonar \
-                        -Dsonar.projectKey=NumericApp \
-                        -Dsonar.host.url=http://localhost:9000 \
-                        -Dsonar.login=$SONAR_TOKEN
+                        mvn sonar:sonar \
+                          -Dsonar.projectKey=NumericApp \
+                          -Dsonar.host.url=http://localhost:9000 \
+                          -Dsonar.login=$SONAR_TOKEN
                     '''
                 }
             }
@@ -71,7 +71,10 @@ pipeline {
         stage('Docker Build and Push') {
             steps {
                 script {
-                    IMAGE_TAG = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    IMAGE_TAG = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
                 }
 
                 withCredentials([usernamePassword(
@@ -80,9 +83,40 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                      docker build -t $IMAGE_NAME:$IMAGE_TAG .
-                      docker push $IMAGE_NAME:$IMAGE_TAG
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                        docker push $IMAGE_NAME:$IMAGE_TAG
                     '''
                 }
             }
+        }
+
+        stage('Kubernetes Deployment - DEV') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+                    sh '''
+                        set -e
+                        echo "Configuring kubeconfig"
+                        mkdir -p ~/.kube
+                        cp "$KUBECONFIG_FILE" ~/.kube/config
+                        chmod 600 ~/.kube/config
+
+                        echo "Deploying to Kubernetes"
+                        kubectl apply -f k8s/
+                    '''
+                }
+            }
+        }
+
+    }  // ✅ closes stages
+
+    post {
+        success {
+            echo '✅ Pipeline completed successfully'
+        }
+        failure {
+            echo '❌ Pipeline failed'
+        }
+    }
+
+} // ✅ closes pipeline
