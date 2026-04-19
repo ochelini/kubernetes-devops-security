@@ -1,114 +1,88 @@
-node {
+pipeline {
+    agent any
 
-    /*************************
-     * Force Java 17 (Snap Jenkins fix)
-     *************************/
-    env.JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
-    env.PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-
-    stage('Verify Java') {
-        sh '''
-            echo "JAVA_HOME=$JAVA_HOME"
-            which java
-            java -version
-            which javac
-            javac -version
-        '''
+    environment {
+        JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+        IMAGE_NAME = 'ochelini/numericapp'
     }
 
-    /*************************
-     * Checkout Source
-     *************************/
-    stage('Checkout') {
-        checkout scm
-    }
+    stages {
 
-    /*************************
-     * Unit Tests
-     *************************/
-    stage('Unit Tests') {
-        sh 'mvn clean test'
-        junit 'target/surefire-reports/*.xml'
-   
-    }
-
-    /*************************
-     * Mutation Tests (PIT)
-     *************************/
-    stage('Mutation Tests - PIT') {
-        catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
-            sh 'mvn org.pitest:pitest-maven:mutationCoverage'
-        }
-        archiveArtifacts artifacts: 'target/pit-reports/**', allowEmptyArchive: true
-    }
-
-   stage('SonarQube - SAST') {
-    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-        sh '''
-            mvn sonar:sonar \
-              -Dsonar.projectKey=NumericApp \
-              -Dsonar.host.url=http://localhost:9000 \
-              -Dsonar.login=$SONAR_TOKEN
-        '''
-    }
-}
-    /*************************
-     * Build JAR
-     *************************/
-    stage('Build JAR') {
-        sh 'mvn clean package -DskipTests'
-    }
-
-    /*************************
-     * Docker Build & Push
-     *************************/
-    stage('Docker Build and Push') {
-
-        def imageTag = sh(
-            script: 'git rev-parse --short HEAD',
-            returnStdout: true
-        ).trim()
-
-        withCredentials([usernamePassword(
-            credentialsId: 'dockerhub',
-            usernameVariable: 'DOCKER_USER',
-            passwordVariable: 'DOCKER_PASS'
-        )]) {
-            sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+        stage('Verify Java') {
+            steps {
+                sh '''
+                  echo "JAVA_HOME=$JAVA_HOME"
+                  java -version
+                  javac -version
+                '''
+            }
         }
 
-        sh "docker build -t ochelini/numericapp:${imageTag} ."
-        sh "docker push ochelini/numericapp:${imageTag}"
-
-        env.IMAGE_TAG = imageTag
-    }
-
-    /*************************
-     * Kubernetes Deployment (DEV)
-     *************************/
-    stage('Kubernetes Deployment - DEV') {
-        withCredentials([file(
-            credentialsId: 'kubeconfig',
-            variable: 'KUBECONFIG_FILE'
-        )]) {
-            sh '''
-                set -e
-
-                echo "Setting kubeconfig"
-                mkdir -p "$HOME/.kube"
-                cp "$KUBECONFIG_FILE" "$HOME/.kube/config"
-                chmod 600 "$HOME/.kube/config"
-
-                echo "Cluster endpoint:"
-                kubectl config view --minify | grep server
-
-                echo "Updating image tag in manifest"
-                sed -i "s#replace#ochelini/numericapp:${IMAGE_TAG}#g" k8s_deployment_service.yaml
-
-                echo "Deploying to Kubernetes"
-                kubectl apply -f k8s_deployment_service.yaml --validate=false
-            '''
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
-    }
 
-} // ✅ end node
+        stage('Unit Tests') {
+            steps {
+                sh 'mvn clean test'
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Mutation Tests - PIT') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    sh 'mvn org.pitest:pitest-maven:mutationCoverage'
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'target/pit-reports/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('SonarQube - SAST') {
+            steps {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                      mvn sonar:sonar \
+                        -Dsonar.projectKey=NumericApp \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
+            }
+        }
+
+        stage('Build JAR') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Docker Build and Push') {
+            steps {
+                script {
+                    IMAGE_TAG = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                }
+
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                      docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                      docker push $IMAGE_NAME:$IMAGE_TAG
+                    '''
+                }
+            }
