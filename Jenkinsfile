@@ -71,22 +71,22 @@ pipeline {
         stage('Docker Build and Push') {
             steps {
                 script {
-                    IMAGE_TAG = sh(
+                    def IMAGE_TAG = sh(
                         script: 'git rev-parse --short HEAD',
                         returnStdout: true
                     ).trim()
-                }
 
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker build -t $IMAGE_NAME:$IMAGE_TAG .
-                        docker push $IMAGE_NAME:$IMAGE_TAG
-                    '''
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh """
+                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+                            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        """
+                    }
                 }
             }
         }
@@ -107,8 +107,7 @@ pipeline {
                 }
             }
         }
-
-    }  // ✅ closes stages
+    }
 
     post {
         success {
@@ -118,5 +117,4 @@ pipeline {
             echo '❌ Pipeline failed'
         }
     }
-
-} // ✅ closes pipeline
+}
